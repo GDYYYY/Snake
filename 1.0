@@ -40,7 +40,7 @@ private:
     int T=300;
     int choice=1;//for different model: 1-classic 2-food 3-two snake 4-obstacle 5-AI 6-
     int numOfObstable=4;
-    dout obstable[50];
+    dout obstable[100];
 
 };
 
