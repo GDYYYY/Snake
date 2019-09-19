@@ -1,0 +1,323 @@
+#include <QtGui>
+#include <ctime>
+#include "rasterwindow.h"
+
+//! [5]
+
+struct dout{
+    int x=0;
+    int y=0;
+};
+
+class AnalogClockWindow : public RasterWindow
+{
+public:
+    AnalogClockWindow();
+    void keyPressEvent(QKeyEvent *event) override;
+    void get(int x,int y);
+    void start();
+
+protected:
+    void timerEvent(QTimerEvent *) override;
+    void render(QPainter *p) override;
+
+private:
+    int m_timerId;
+    int xhead=0,yhead=0;
+    int xhead1=990,yhead1=490;
+    int xa,ya,xb,yb;//a为加速，b为减速
+    int W=1000,H=500;
+    int xd=0,yd=0;
+    int xd1=0,yd1=0;//方向
+    dout snake[5005];
+    dout snake1[5005];
+    int length=1;
+    int length1=1;
+    int xfood=rand()%(W/10)*10;
+    int yfood=rand()%(H/10)*10;
+    bool flag=true;//判断死没死
+    bool isStart=true;//开局
+    int T=100;
+    int choice=1;//for different model: 1-classic 2-food 3-two snake 4-obstacle 5-AI 6-
+    int numOfObstable=4;
+    dout obstable[50];
+
+};
+
+void AnalogClockWindow::keyPressEvent(QKeyEvent *event)
+{
+    if(event->key()==Qt::Key_Left&&xd!=1) {xd=-1;yd=0;}
+    if(event->key()==Qt::Key_Right&&xd!=-1) {xd=1;yd=0;}
+    if(event->key()==Qt::Key_Up&&yd!=1) {xd=0;yd=-1;}
+    if(event->key()==Qt::Key_Down&&yd!=-1) {xd=0;yd=1;}
+    if(event->key()==Qt::Key_A&&xd1!=1) {xd1=-1;yd1=0;}
+    if(event->key()==Qt::Key_D&&xd1!=-1) {xd1=1;yd1=0;}
+    if(event->key()==Qt::Key_W&&yd1!=1) {xd1=0;yd1=-1;}
+    if(event->key()==Qt::Key_S&&yd1!=-1) {xd1=0;yd1=1;}//
+    if(event->key()==Qt::Key_Q&&!flag) {start();}
+    if(event->key()==Qt::Key_1&&isStart) {isStart=false;choice=1;}
+    if(event->key()==Qt::Key_2&&isStart) {isStart=false;choice=2;}
+    if(event->key()==Qt::Key_3&&isStart) {isStart=false;choice=3;}
+    if(event->key()==Qt::Key_4&&isStart) {isStart=false;choice=4;}
+    if(event->key()==Qt::Key_5&&isStart) {isStart=false;choice=5;}
+    if(event->key()==Qt::Key_6&&isStart) {isStart=false;choice=6;}
+
+}
+//! [5]
+void AnalogClockWindow::start()
+{
+
+    xhead=yhead=xd=yd=0;
+    length=1;
+    xfood=rand()%(W/10)*10;
+    yfood=rand()%(H/10)*10;
+    flag=true;
+    isStart=true;
+
+    if(choice==2)
+    {get(xa,ya);get(xb,yb);}
+
+    else if(choice==3)
+    {
+        xd1=yd1=0;
+        xhead1=990;yhead1=490;
+        length1=1;
+    }
+
+    else if(choice==4)
+    {
+        for(int i=1;i<=20;i++)
+    {
+        obstable[i].x=200;
+        obstable[i].y=(i-1)*10;
+    }
+    for(int i=1;i<=20;i++)
+    {
+        obstable[i+20].y=400;
+        obstable[i+20].x=5010-i*10;
+    }
+    for(int i=41;i<=45;i++)
+    {
+        obstable[i].x=rand()%(W/10)*10;
+        obstable[i].y=rand()%(H/10)*10;
+    }
+    }
+}
+
+void AnalogClockWindow::get(int targetx,int targety)
+{
+    int x=rand()%(W/10)*10,y=rand()%(H/10)*10;
+    bool flag1=true;
+    for(int i=0;i<length;i++)
+    {
+        if(snake[i].x==x&&snake[i].y==y)
+           { flag1=false;break;}
+
+    }
+    if(flag1) {targetx=x;targety=y;}
+    else get(targetx,targety);
+}
+
+//! [6]
+AnalogClockWindow::AnalogClockWindow()
+{
+    setTitle("Snake 1.0");
+    resize(W, H);
+    srand(time(NULL));
+
+    m_timerId = startTimer(T);
+}
+//! [6]
+
+//! [7]
+void AnalogClockWindow::timerEvent(QTimerEvent *event)
+{
+    if(isStart) return;
+    if(choice!=5)
+    {xhead+=xd*10;
+    yhead+=yd*10;
+    xhead1+=xd1*10;
+    yhead1+=yd1*10;}
+    else {
+       if(xhead==990&&yhead==490)
+          { yd=0;xd=-1;}
+       else if(xhead==990&&yhead==480)
+          { yd=1;xd=0;}
+       else if(xhead==0&&yhead==0)
+          { xd=1;yd=0;}
+       else if(xhead%20&&yhead<480)
+          { yd=1;xd=0;}
+       else if(xhead%20&&yhead==480)
+          { xd=1;yd=0;}
+       else if(!xhead%20&&yhead==0)
+          {yd=0;xd=1;}
+       else if(!xhead%20&&yhead<=480)
+          { yd=-1;xd=0;}
+        else if(yhead==490&&xhead==0)
+          { xd=0;yd=-1;}
+       else if(yhead==490&&xhead>0)
+          { xd=-1;yd=0;}
+
+    }
+
+    if((xhead<0||xhead>W||yhead<0||yhead>H)&&(xhead1<0||xhead1>W||yhead1<0||yhead1>H))
+        flag=false;
+    else if(choice==4)
+    {
+        if((xhead==200&&yhead<200)||(yhead==400&&xhead>4800))
+            flag=false;
+        for(int i=41;i<=45;i++)
+            if(xhead==obstable[i].x&&yhead==obstable[i].y)
+                flag=false;
+    }
+
+    if(xhead==xfood&&yhead==yfood)
+    {
+        length++;
+        for(int i=length-1;i>0;i--)
+        {
+            snake[i].x=snake[i-1].x;
+            snake[i].y=snake[i-1].y;
+        }
+        snake[0].x=xhead;
+        snake[0].y=yhead;
+        get(xfood,yfood);
+    }
+    else if(choice==3&&xhead1==xfood&&yhead1==yfood)
+    {
+        length1++;
+        for(int i=length1-1;i>0;i--)
+        {
+            snake1[i].x=snake1[i-1].x;
+            snake1[i].y=snake1[i-1].y;
+        }
+        snake1[0].x=xhead1;
+        snake1[0].y=yhead1;
+        get(xfood,yfood);
+    }
+
+    else
+    {
+         if(choice==2&&xhead==xa&&yhead==ya)
+        {
+            T-=20;
+            if(T>20)
+            get(xa,ya);
+            else
+            {xa=-1;ya=-1;
+            if(xb==-1) get(xb,yb);}
+        }
+        else if(choice==2&&xhead==xb&&yhead==yb)
+        {
+            T+=20;
+            if(T<500)
+            get(xb,yb);
+            else
+            {xb=-1;yb=-1;
+            if(xa==-1) get(xa,ya);}
+        }
+
+        for(int i=4;i<length;i++)
+        {
+            if(xhead==snake[i].x&&yhead==snake[i].y)
+            {flag=false; break;}
+        }
+        if(choice==3)
+        {
+            for(int i=4;i<length1;i++)
+            {
+                if(xhead1==snake1[i].x&&yhead1==snake1[i].y)
+                {flag=false; break;}
+            }
+            for(int i=0;i<length;i++)
+            {
+                if(xhead1==snake[i].x&&yhead1==snake[i].y)
+                {flag=false; break;}
+            }
+            for(int i=0;i<length1;i++)
+            {
+                if(xhead==snake1[i].x&&yhead==snake1[i].y)
+                {flag=false; break;}
+            }
+        }
+        if(flag)
+        {
+            for(int i=length-1;i>0;i--)
+            {snake[i].x=snake[i-1].x;
+            snake[i].y=snake[i-1].y;}
+            snake[0].x=xhead;
+            snake[0].y=yhead;
+            if(choice==3)
+            {
+                for(int i=length1-1;i>0;i--)
+                {snake1[i].x=snake1[i-1].x;
+                snake1[i].y=snake1[i-1].y;}
+                snake1[0].x=xhead1;
+                snake1[0].y=yhead1;
+            }
+        }
+    }
+
+    if (event->timerId() == m_timerId)
+        renderLater();
+}
+//! [7]
+
+//! [1] //! [14]
+void AnalogClockWindow::render(QPainter *p)
+{
+//! [14]
+//! [8]
+
+   if(isStart)
+   {
+       p->drawImage(QRect(0,0,1000,500),QImage(":/start1.jpg"));
+       return;
+   }
+    if(!flag)
+   {
+       p->drawImage(QRect(0,0,1000,500),QImage(":/gameover.jpg"));
+       return;
+   }
+
+
+
+       p->setBrush(Qt::blue);
+       for(int i=0;i<length;i++)
+       p->drawRect(QRect(snake[i].x,snake[i].y,10,10));
+
+   if(choice==3)
+   {
+       p->setBrush(Qt::red);
+       for(int i=0;i<length1;i++)
+       p->drawRect(QRect(snake1[i].x,snake1[i].y,10,10));
+   }
+
+   p->setBrush(Qt::green);
+   p->drawRect(QRect(xfood,yfood,10,10));
+
+   if(choice==2)
+   {
+       p->setBrush(Qt::red);
+       p->drawRect(QRect(xa,ya,10,10));
+       p->setBrush(Qt::yellow);
+       p->drawRect(QRect(xb,yb,10,10));
+   }
+   if(choice==4)
+   {
+       p->setBrush(Qt::black);
+       for(int i=1;i<=45;i++)
+           p->drawRect(QRect(obstable[i].x,obstable[i].y,10,10));
+   }
+
+}
+
+int main(int argc, char **argv)
+{
+    QGuiApplication app(argc, argv);
+
+    AnalogClockWindow clock;
+    clock.show();
+
+    return app.exec();
+}
